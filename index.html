@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поймай куратора. Ах бестия, ускользает!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Поймай куратора</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,18 +13,22 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            touch-action: manipulation;
         }
         
         .game-container {
-            width: 600px;
-            height: 400px;
+            width: 90%;
+            max-width: 600px;
+            height: 50vh;
+            min-height: 250px;
+            max-height: 400px;
             background-color: #fff;
             border: 3px solid #333;
             border-radius: 10px;
             position: relative;
             overflow: hidden;
-            margin-top: 20px;
+            margin: 20px auto;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
         
@@ -37,12 +41,17 @@
             transition: transform 0.1s;
             border-radius: 50%;
             overflow: hidden;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .ball img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: none;
         }
         
         .ball:hover {
@@ -55,21 +64,26 @@
             padding: 10px 20px;
             border-radius: 5px;
             font-size: 18px;
-            margin-top: 20px;
+            margin: 10px 0;
             display: flex;
             justify-content: space-between;
-            width: 300px;
+            width: 90%;
+            max-width: 300px;
             box-shadow: 0 3px 5px rgba(0,0,0,0.2);
         }
         
         .control-panel {
-            margin-top: 20px;
+            margin: 15px 0;
             display: flex;
-            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            width: 90%;
+            max-width: 400px;
         }
         
         button {
-            padding: 10px 15px;
+            padding: 12px 15px;
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -78,9 +92,12 @@
             font-size: 16px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             transition: background-color 0.2s;
+            min-width: 120px;
+            flex-grow: 1;
+            touch-action: manipulation;
         }
         
-        button:hover {
+        button:hover, button:active {
             background-color: #45a049;
         }
         
@@ -90,10 +107,12 @@
         }
         
         .level-select {
-            padding: 10px;
+            padding: 12px 10px;
             font-size: 16px;
             border-radius: 4px;
             border: 1px solid #ddd;
+            flex-grow: 1;
+            min-width: 120px;
         }
         
         .game-over {
