@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поймай куратора. Ах бестия, ускользает!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+        
+        .game-container {
+            width: 600px;
+            height: 400px;
+            background-color: #fff;
+            border: 3px solid #333;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .ball {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+        
+        .ball img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .ball:hover {
+            transform: scale(1.1);
+        }
+        
+        .score-board {
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 18px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            width: 300px;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+        }
+        
+        .control-panel {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .level-select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            z-index: 10;
+            display: none;
+        }
+        
+        .game-over h2 {
+            margin-bottom: 20px;
+            font-size: 36px;
+            color: #ff5722;
+        }
+        
+        .countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 64px;
+            color: #333;
+            font-weight: bold;
+            z-index: 5;
+            display: none;
+        }
+        
+        .effect {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.7;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Поймай куратора. Ах бестия, ускользает!</h1>
+    
+    <div class="game-container" id="gameContainer">
+        <div class="ball" id="ball">
+            <img src="kurator.jpg" alt="игровой объект" id="ballImage">
+        </div>
+        <div class="countdown" id="countdown">3</div>
+        <div class="game-over" id="gameOver">
+            <h2>Игра окончена!</h2>
+            <p>Ваш результат: <span id="finalScore">0</span></p>
+        </div>
+    </div>
+    
+    <div class="score-board">
+        <div>Очки: <span id="score">0</span></div>
+        <div>Время: <span id="timer">30</span>с</div>
+    </div>
+    
+    <div class="control-panel">
+        <select class="level-select" id="levelSelect">
+            <option value="easy">Легкий</option>
+            <option value="medium">Средний</option>
+            <option value="hard">Сложный</option>
+        </select>
+        <button id="startButton">Начать игру</button>
+        <button id="resetButton" disabled>Сбросить</button>
+    </div>
+    
+    <script>
+        // Элементы DOM
+        const ball = document.getElementById('ball');
+        const gameContainer = document.getElementById('gameContainer');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+        const startButton = document.getElementById('startButton');
+        const resetButton = document.getElementById('resetButton');
+        const levelSelect = document.getElementById('levelSelect');
+        const gameOverScreen = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const countdownElement = document.getElementById('countdown');
+        
+        // Параметры игры
+        let score = 0;
+        let timeLeft = 30;
+        let gameInterval;
+        let timerInterval;
+        let isGameRunning = false;
+        let gameSettings = {
+            easy: { speed: 1000, shrink: false, multiColor: false },
+            medium: { speed: 800, shrink: true, multiColor: false },
+            hard: { speed: 500, shrink: true, multiColor: true }
+        };
+        let currentSettings;
+        
+        // Размеры игрового поля
+        const containerWidth = gameContainer.clientWidth;
+        const containerHeight = gameContainer.clientHeight;
+        const ballSize = 40;
+        
+        // Инициализация шарика
+        function initBall() {
+            ball.style.left = '50%';
+            ball.style.top = '50%';
+            ball.style.transform = 'translate(-50%, -50%)';
+            ball.style.width = ballSize + 'px';
+            ball.style.height = ballSize + 'px';
+            
+            // Здесь вы можете заменить изображение на своё
+            // document.getElementById('ballImage').src = 'путь_к_вашему_изображению.png';
+        }
+        
+        // Перемещение шарика в случайную позицию
+        function moveBall() {
+            // Учитываем размер шарика, чтобы он не выходил за границы
+            const maxX = containerWidth - ballSize;
+            const maxY = containerHeight - ballSize;
+            
+            const newX = Math.floor(Math.random() * maxX);
+            const newY = Math.floor(Math.random() * maxY);
+            
+            ball.style.left = newX + 'px';
+            ball.style.top = newY + 'px';
+            
+            // Если включен уровень сложности с изменением размера
+            if (currentSettings.shrink) {
+                const newSize = Math.max(20, Math.floor(Math.random() * 40) + 20);
+                ball.style.width = newSize + 'px';
+                ball.style.height = newSize + 'px';
+            }
+            
+            // Если включен уровень сложности с изменением цвета
+            // Для изображения мы можем добавить фильтр вместо изменения цвета
+            if (currentSettings.multiColor) {
+                const hue = Math.floor(Math.random() * 360);
+                document.getElementById('ballImage').style.filter = `hue-rotate(${hue}deg)`;
+            } else {
+                document.getElementById('ballImage').style.filter = 'none';
+            }
+        }
+        
+        // Обработка клика по шарику
+        ball.addEventListener('click', () => {
+            if (!isGameRunning) return;
+            
+            score++;
+            scoreElement.textContent = score;
+            
+            // Создаем эффект при клике
+            createClickEffect(event);
+            
+            // Перемещаем шарик сразу после клика
+            clearInterval(gameInterval);
+            moveBall();
+            gameInterval = setInterval(moveBall, currentSettings.speed);
+        });
+        
+        // Создание визуального эффекта при клике
+        function createClickEffect(event) {
+            const rect = ball.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            const effect = document.createElement('div');
+            effect.className = 'effect';
+            effect.style.left = (centerX - 20) + 'px';
+            effect.style.top = (centerY - 20) + 'px';
+            effect.style.width = '40px';
+            effect.style.height = '40px';
+            effect.style.backgroundColor = getComputedStyle(document.getElementById('ballImage')).filter === 'none' ? 
+                                          'rgba(255, 87, 34, 0.7)' : 
+                                          'rgba(150, 150, 150, 0.7)';
+            
+            document.body.appendChild(effect);
+            
+            // Анимация эффекта
+            let size = 40;
+            let opacity = 0.7;
+            const effectInterval = setInterval(() => {
+                size += 10;
+                opacity -= 0.05;
+                effect.style.width = size + 'px';
+                effect.style.height = size + 'px';
+                effect.style.left = (centerX - size/2) + 'px';
+                effect.style.top = (centerY - size/2) + 'px';
+                effect.style.opacity = opacity;
+                
+                if (opacity <= 0) {
+                    clearInterval(effectInterval);
+                    document.body.removeChild(effect);
+                }
+            }, 30);
+        }
+        
+        // Старт игры
+        function startGame() {
+            // Получаем настройки выбранного уровня
+            const level = levelSelect.value;
+            currentSettings = gameSettings[level];
+            
+            // Отключаем кнопку старта и включаем кнопку сброса
+            startButton.disabled = true;
+            resetButton.disabled = false;
+            levelSelect.disabled = true;
+            
+            // Сбрасываем счет и время
+            score = 0;
+            timeLeft = 30;
+            scoreElement.textContent = score;
+            timerElement.textContent = timeLeft;
+            
+            // Скрываем экран окончания игры
+            gameOverScreen.style.display = 'none';
+            
+            // Запускаем обратный отсчет
+            startCountdown();
+        }
+        
+        // Обратный отсчет перед началом игры
+        function startCountdown() {
+            countdownElement.style.display = 'block';
+            let count = 3;
+            countdownElement.textContent = count;
+            
+            const countdownInterval = setInterval(() => {
+                count--;
+                countdownElement.textContent = count;
+                
+                if (count <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownElement.style.display = 'none';
+                    startGamePlay();
+                }
+            }, 1000);
+        }
+        
+        // Запуск игрового процесса
+        function startGamePlay() {
+            isGameRunning = true;
+            initBall();
+            moveBall();
+            
+            // Интервал перемещения шарика
+            gameInterval = setInterval(moveBall, currentSettings.speed);
+            
+            // Интервал таймера
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+        
+        // Окончание игры
+        function endGame() {
+            isGameRunning = false;
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            
+            // Показываем экран окончания игры
+            finalScoreElement.textContent = score;
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        // Сброс игры
+        function resetGame() {
+            isGameRunning = false;
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            
+            // Сбрасываем счет и время
+            score = 0;
+            timeLeft = 30;
+            scoreElement.textContent = score;
+            timerElement.textContent = timeLeft;
+            
+            // Включаем кнопку старта и отключаем кнопку сброса
+            startButton.disabled = false;
+            resetButton.disabled = true;
+            levelSelect.disabled = false;
+            
+            // Скрываем экран окончания игры
+            gameOverScreen.style.display = 'none';
+            
+            // Возвращаем шарик в исходное положение
+            initBall();
+        }
+        
+        // Обработчики событий кнопок
+        startButton.addEventListener('click', startGame);
+        resetButton.addEventListener('click', resetGame);
+        
+        // Инициализация при загрузке страницы
+        initBall();
+    </script>
+</body>
+</html>
